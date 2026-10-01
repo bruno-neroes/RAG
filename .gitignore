@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+.vercel/
+.env
+.env*.local
+.supabase-secrets
+*.log
+.DS_Store
+next-env.d.ts
+*.tsbuildinfo
+supabase/.temp/
+eval/raw/
+PROMPT.md
