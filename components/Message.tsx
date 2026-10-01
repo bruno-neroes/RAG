@@ -1,6 +1,7 @@
 import { AlertCircle } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import Citations from "./Citations";
+import type { Dict } from "./i18n";
 
 export type UiMessage = {
   id: string;
@@ -61,10 +62,10 @@ function RichText({ text }: { text: string }) {
   return <>{blocks}</>;
 }
 
-function Typing() {
+function Typing({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center gap-1 py-1" role="status">
-      <span className="sr-only">O assistente está a escrever…</span>
+      <span className="sr-only">{label}</span>
       {[0, 1, 2].map((i) => (
         <span key={i} aria-hidden="true" className="typing-dot size-2 rounded-full bg-muted" />
       ))}
@@ -72,7 +73,7 @@ function Typing() {
   );
 }
 
-export default function Message({ message: m }: { message: UiMessage }) {
+export default function Message({ message: m, t }: { message: UiMessage; t: Dict }) {
   const isUser = m.role === "user";
   return (
     <li className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
@@ -85,14 +86,14 @@ export default function Message({ message: m }: { message: UiMessage }) {
               }`
         }
       >
-        <span className="sr-only">{isUser ? "Você disse:" : "Assistente:"}</span>
+        <span className="sr-only">{isUser ? t.youSaid : t.assistant}</span>
         {m.status === "pending" ? (
-          <Typing />
+          <Typing label={t.typing} />
         ) : (
           <div className="break-words leading-relaxed">
             {m.status === "error" && (
               <p className="mb-1 inline-flex items-center gap-1 text-sm font-semibold">
-                <AlertCircle aria-hidden="true" className="size-4 text-brand-red" /> Aviso
+                <AlertCircle aria-hidden="true" className="size-4 text-brand-red" /> {t.warning}
               </p>
             )}
             {isUser ? <p className="whitespace-pre-wrap">{m.text}</p> : <RichText text={m.text} />}
@@ -102,7 +103,7 @@ export default function Message({ message: m }: { message: UiMessage }) {
           <time dateTime={m.time.toISOString()}>{timeFmt.format(m.time)}</time>
         </p>
       </div>
-      {!isUser && m.status === "done" && <Citations items={m.citations} />}
+      {!isUser && m.status === "done" && <Citations items={m.citations} label={t.cited} sourcesLabel={t.sources} />}
     </li>
   );
 }

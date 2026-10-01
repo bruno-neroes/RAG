@@ -7,6 +7,7 @@ import { anthropic } from "../lib/anthropic";
 import { config } from "../lib/config";
 import { outputViolation } from "../lib/guard";
 import { runPipeline, type PipelineResult } from "../lib/pipeline";
+import { PRICE, requestCostUsd } from "../lib/pricing";
 
 type Suggested = { id: string; q: string; expect_section: string };
 type Adversarial = { id: string; q: string; expect: string };
@@ -15,18 +16,12 @@ const questions = JSON.parse(readFileSync(path.join(process.cwd(), "eval/questio
   suggested: Suggested[];
   adversarial: Adversarial[];
 };
-
-// Preços em USD por milhão de tokens (Anthropic e Voyage, tabelas públicas consultadas a 2026-10-01).
-const PRICE = {
-  sonnetIn: 2.0,
-  sonnetOut: 10.0,
-  sonnetCacheRead: 0.2,
-  sonnetCacheWrite: 2.5, // 1,25× o input (TTL de 5 min)
-  haikuIn: 1.0,
-  haikuOut: 5.0,
-  voyageEmbed: 0.06,
-  voyageRerank: 0.05,
+// Perguntas em inglês: informativas, fora do gate (o gate do PROMPT é sobre as perguntas em PT).
+const questionsEn = JSON.parse(readFileSync(path.join(process.cwd(), "eval/questions.en.json"), "utf8")) as {
+  suggested: Suggested[];
 };
+
+
 
 const EXPECT_TEXT: Record<string, string> = {
   refuse_politely_stay_in_scope:
@@ -94,23 +89,12 @@ Justifica primeiro, depois dá o veredicto. Responde só com JSON:
 pass = true só se a resposta cumprir integralmente o comportamento esperado.`;
 
 function cost(r: PipelineResult): number {
-  const u = r.usage;
-  const t = r.retrieval?.tokens ?? { embed: 0, rerank: 0 };
-  return (
-    (u.guardIn * PRICE.haikuIn +
-      u.guardOut * PRICE.haikuOut +
-      u.genIn * PRICE.sonnetIn +
-      u.genOut * PRICE.sonnetOut +
-      u.cacheRead * PRICE.sonnetCacheRead +
-      u.cacheWrite * PRICE.sonnetCacheWrite +
-      t.embed * PRICE.voyageEmbed +
-      t.rerank * PRICE.voyageRerank) /
-    1e6
-  );
+  return requestCostUsd(r.usage, r.retrieval?.tokens);
 }
 
 async function main() {
-  const only = process.argv[2]; // opcional: "s" ou "a" ou um id (ex.: s05)
+  const only = process.argv[2]; // opcional: "s", "a", "en" ou um id (ex.: s05)
+  if (only === "en") return evalEnglish();
   const rows: string[] = [];
   const latencies: number[] = [];
   const firstTokens: number[] = [];
@@ -244,6 +228,47 @@ async function main() {
   console.log(`P50 ${pct(latencies, 50)} ms · P95 ${pct(latencies, 95)} ms · custo $${totalCost.toFixed(4)} (+ juiz $${judgeCost.toFixed(4)})`);
   console.log(`GATE: ${gate ? "VERDE" : full ? "VERMELHO" : "INCOMPLETO"}`);
   if (full && !gate) process.exit(1);
+}
+
+/** npm run eval en — as 20 sugeridas em inglês: hit@5 + juiz. Informativo, fora do gate. */
+async function evalEnglish() {
+  let hits = 0;
+  let pass = 0;
+  const lat: number[] = [];
+  const costs: number[] = [];
+  const rows: string[] = [];
+  for (const s of questionsEn.suggested) {
+    const r = await runPipeline([{ role: "user", content: s.q }], { lang: "en" });
+    lat.push(r.timings.totalMs);
+    costs.push(cost(r));
+    const hit = (r.retrieval?.reranked ?? []).some((d) => d.section === s.expect_section);
+    if (hit) hits++;
+    const docs = (r.retrieval?.docs ?? []).map((d) => `<document section="${d.section}">\n${d.content}\n</document>`).join("\n");
+    const v =
+      r.label === "project"
+        ? await judge(JUDGE_SUGGESTED, `<pergunta>${s.q}</pergunta>\n<documentos>\n${docs || "(nenhum)"}\n</documentos>\n<resposta>${r.answer}</resposta>`)
+        : { grounded: false, answered: false };
+    const english = (r.answer.match(/\b(não|são|está|também|uma|para|com|projeto)\b/gi) ?? []).length < 3;
+    const ok = v.grounded === true && v.answered === true && r.citations.length > 0 && words(r.answer) <= 150 && english;
+    if (ok) pass++;
+    console.log(`${s.id} hit=${hit ? "✓" : "✗"} juiz=${ok ? "✓" : "✗"} ${english ? "EN" : "PT?"} ${r.timings.totalMs}ms  ${s.q}`);
+    rows.push(`| ${s.id} | ${s.q} | ${hit ? "✅" : "❌"} | ${v.grounded ? "✅" : "❌"} | ${v.answered ? "✅" : "❌"} | ${r.citations.length > 0 ? "✅" : "❌"} | ${english ? "✅" : "❌"} | ${ok ? "**✅**" : "**❌**"} |`);
+  }
+  const report = [
+    `# Avaliação em inglês (informativa, fora do gate)`,
+    ``,
+    `Gerado por \`npm run eval en\` em ${new Date().toISOString()}. Base de conhecimento em português; perguntas e respostas em inglês.`,
+    ``,
+    `- hit@5: **${hits}/20** · juiz (fundamentada, respondeu, citação, ≤150 palavras, em inglês): **${pass}/20**`,
+    `- Latência P50 ${pct(lat, 50)} ms · P95 ${pct(lat, 95)} ms · custo $${costs.reduce((a, b) => a + b, 0).toFixed(4)}`,
+    ``,
+    `| id | Pergunta | hit@5 | Fundamentada | Respondeu | Citação | Em inglês | Passa |`,
+    `|---|---|---|---|---|---|---|---|`,
+    ...rows,
+    ``,
+  ];
+  writeFileSync(path.join(process.cwd(), "eval/report.en.md"), report.join("\n"));
+  console.log(`\nEN: hit@5 ${hits}/20 · juiz ${pass}/20 · P50 ${pct(lat, 50)} ms`);
 }
 
 main().catch((e) => {

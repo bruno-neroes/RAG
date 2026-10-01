@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import questions from "@/eval/questions.json";
+import questionsEn from "@/eval/questions.en.json";
 import { config } from "./config";
 import { KB_VERSION } from "./kb-version.generated";
 import { SYSTEM_PROMPT } from "./prompt";
 import { supabaseAdmin } from "./supabase";
 
-// Cache exata só para as 20 perguntas fixas do carrossel (texto conhecido, sem dados pessoais).
+// Cache exata só para as perguntas fixas do carrossel, em PT e EN (texto conhecido, sem dados pessoais).
 // Texto livre nunca é servido da cache: um falso "match" daria uma resposta errada.
 
 function normalize(q: string): string {
@@ -17,7 +18,7 @@ function normalize(q: string): string {
     .trim();
 }
 
-const SUGGESTED = new Set(questions.suggested.map((s) => normalize(s.q)));
+const SUGGESTED = new Set([...questions.suggested, ...questionsEn.suggested].map((s) => normalize(s.q)));
 const PROMPT_VERSION = createHash("sha256").update(SYSTEM_PROMPT).digest("hex").slice(0, 12);
 
 export function isSuggested(question: string): boolean {

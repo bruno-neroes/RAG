@@ -6,6 +6,7 @@ import Composer from "./Composer";
 import Header from "./Header";
 import Message, { type UiMessage } from "./Message";
 import SuggestionCarousel from "./SuggestionCarousel";
+import { T, type Dict, type Lang, type LastTrace } from "./i18n";
 
 const MAX_CHARS = 600;
 const HISTORY_SENT = 6;
@@ -31,7 +32,7 @@ function getSessionId(): string {
 /** Enquanto o texto chega em stream, esconde os marcadores [Secção: ...] (vêm como chips no fim). */
 function stripMarkers(text: string): string {
   return text
-    .replace(/\[\s*Sec[çc][ãa]o\s*:[^\]]*\]/gi, "")
+    .replace(/\[\s*(?:Sec[çc][ãa]o|Section)\s*:[^\]]*\]/gi, "")
     .replace(/\[\s*S[^\]]*$/i, "")
     .trimEnd();
 }
@@ -65,7 +66,24 @@ async function* readSse(res: Response): AsyncGenerator<SseEvent> {
   }
 }
 
-export default function Chat({ suggestions, starters }: { suggestions: string[]; starters: string[] }) {
+function readLang(): Lang {
+  try {
+    const saved = localStorage.getItem("afr-lang");
+    if (saved === "pt" || saved === "en") return saved;
+  } catch {}
+  return "pt";
+}
+
+export default function Chat({
+  suggestions,
+  starters,
+}: {
+  suggestions: Record<Lang, string[]>;
+  starters: Record<Lang, string[]>;
+}) {
+  const [lang, setLang] = useState<Lang>("pt");
+  const t: Dict = T[lang];
+  const [lastTrace, setLastTrace] = useState<LastTrace | null>(null);
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -76,8 +94,16 @@ export default function Chat({ suggestions, starters }: { suggestions: string[];
 
   useEffect(() => {
     sessionRef.current = getSessionId();
+    setLang(readLang());
     return () => abortRef.current?.abort();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang === "en" ? "en" : "pt-PT";
+    try {
+      localStorage.setItem("afr-lang", lang);
+    } catch {}
+  }, [lang]);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -115,12 +141,12 @@ export default function Chat({ suggestions, starters }: { suggestions: string[];
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: sessionRef.current, messages: history }),
+          body: JSON.stringify({ sessionId: sessionRef.current, messages: history, lang }),
           signal: ctrl.signal,
         });
 
         if (!res.ok || !res.body) {
-          let message = "Não consegui responder agora. Tente outra vez daqui a pouco.";
+          let message = t.genericError;
           try {
             const j = await res.json();
             if (typeof j?.message === "string") message = j.message;
@@ -142,6 +168,7 @@ export default function Chat({ suggestions, starters }: { suggestions: string[];
             patch(botId, (m) => ({ ...m, text: d.text as string }));
           } else if (event === "done") {
             finalText = String(d.answer ?? "");
+            if (d.trace && typeof d.trace === "object") setLastTrace(d.trace as LastTrace);
             patch(botId, (m) => ({
               ...m,
               text: finalText,
@@ -156,16 +183,16 @@ export default function Chat({ suggestions, starters }: { suggestions: string[];
         }
       } catch {
         if (!ctrl.signal.aborted) {
-          finalText = "A ligação falhou. Verifique a rede e tente outra vez.";
+          finalText = t.netError;
           patch(botId, (m) => ({ ...m, text: finalText, status: "error", time: new Date() }));
         }
       } finally {
         setBusy(false);
         // Uma única notificação por resposta, quando termina (não por token).
-        if (finalText) setAnnouncement(`Resposta do assistente: ${finalText.replace(/\*\*|^#+\s*/gm, "")}`);
+        if (finalText) setAnnouncement(`${t.announce} ${finalText.replace(/\*\*|^#+\s*/gm, "")}`);
       }
     },
-    [busy, messages, patch],
+    [busy, messages, patch, lang, t],
   );
 
   return (
@@ -174,17 +201,17 @@ export default function Chat({ suggestions, starters }: { suggestions: string[];
         href="#conversa"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-4 focus:py-3 focus:text-fg focus:shadow-lg"
       >
-        Saltar para o conteúdo
+        {t.skip}
       </a>
 
-      <Header onAbout={() => setAboutOpen(true)} />
+      <Header t={t} onAbout={() => setAboutOpen(true)} onToggleLang={() => setLang((l) => (l === "pt" ? "en" : "pt"))} />
 
-      <main id="conversa" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none" aria-label="Conversa">
+      <main id="conversa" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none" aria-label={t.conversation}>
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 py-5">
-          <Welcome starters={starters} onPick={send} disabled={busy} />
-          <ol className="flex flex-col gap-3" aria-label="Mensagens">
+          <Welcome t={t} starters={starters[lang]} onPick={send} disabled={busy} />
+          <ol className="flex flex-col gap-3" aria-label={t.messages}>
             {messages.map((m) => (
-              <Message key={m.id} message={m} />
+              <Message key={m.id} message={m} t={t} />
             ))}
           </ol>
           <div ref={listEndRef} />
@@ -196,40 +223,43 @@ export default function Chat({ suggestions, starters }: { suggestions: string[];
       </div>
 
       <section
-        aria-label="Escrever uma pergunta"
+        aria-label={t.composeRegion}
         className="border-t border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85"
       >
         <div className="mx-auto w-full max-w-2xl px-4 pt-2">
-          <SuggestionCarousel items={suggestions} onPick={send} disabled={busy} />
-          <Composer onSend={send} busy={busy} maxChars={MAX_CHARS} />
+          <SuggestionCarousel key={lang} t={t} items={suggestions[lang]} onPick={send} disabled={busy} />
+          <Composer t={t} onSend={send} busy={busy} maxChars={MAX_CHARS} />
         </div>
         <footer className="mx-auto w-full max-w-2xl px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-center text-xs text-muted">
-          Assistente de IA · respostas baseadas na documentação do projeto · pode cometer erros ·{" "}
+          {t.footer}{" "}
           <button type="button" onClick={() => setAboutOpen(true)} className="inline-flex min-h-6 items-center underline underline-offset-2">
-            Sobre
+            {t.about}
           </button>
         </footer>
       </section>
 
-      <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <AboutSheet t={t} lang={lang} last={lastTrace} open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   );
 }
 
-function Welcome({ starters, onPick, disabled }: { starters: string[]; onPick: (q: string) => void; disabled: boolean }) {
+function Welcome({ t, starters, onPick, disabled }: { t: Dict; starters: string[]; onPick: (q: string) => void; disabled: boolean }) {
   return (
     <section aria-labelledby="boas-vindas" className="flex flex-col gap-3">
       <div className="max-w-[88%] self-start rounded-2xl rounded-tl-md border border-line bg-bubble-bot px-4 py-3 shadow-sm">
         <h2 id="boas-vindas" className="sr-only">
-          Boas-vindas
+          {t.welcomeHeading}
         </h2>
         <p>
-          Olá! Sou um <strong>assistente de IA</strong> sobre o <strong>AI First-Responder</strong> — o agente de voz para
-          cabinas públicas de desfibrilhadores que o Bruno Sousa levou de piloto a produção na MAKEIT.
+          {t.welcome1a}
+          <strong>{t.welcomeAi}</strong>
+          {t.welcome1b}
+          <strong>AI First-Responder</strong>
+          {t.welcome1c}
         </p>
-        <p className="mt-2">Respondo com base na documentação do projeto e indico as secções que usei. Por onde quer começar?</p>
+        <p className="mt-2">{t.welcome2}</p>
       </div>
-      <ul className="flex flex-wrap gap-2" aria-label="Perguntas para começar">
+      <ul className="flex flex-wrap gap-2" aria-label={t.starters}>
         {starters.map((q) => (
           <li key={q}>
             <button

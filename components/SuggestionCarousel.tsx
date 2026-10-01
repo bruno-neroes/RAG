@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import type { Dict } from "./i18n";
 
 const INTERVAL_MS = 4000;
 
@@ -10,10 +11,12 @@ const INTERVAL_MS = 4000;
  * não roda com prefers-reduced-motion; tem botão de pausa (WCAG 2.2.2), setas e teclado.
  */
 export default function SuggestionCarousel({
+  t,
   items,
   onPick,
   disabled,
 }: {
+  t: Dict;
   items: string[];
   onPick: (q: string) => void;
   disabled: boolean;
@@ -72,8 +75,8 @@ export default function SuggestionCarousel({
 
   return (
     <section
-      aria-roledescription="carrossel"
-      aria-label="Perguntas sugeridas"
+      aria-roledescription={t.carouselRole}
+      aria-label={t.carousel}
       className="flex items-center gap-1"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -90,7 +93,7 @@ export default function SuggestionCarousel({
           className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-fg"
         >
           {userPaused ? <Play aria-hidden="true" className="size-4" /> : <Pause aria-hidden="true" className="size-4" />}
-          <span className="sr-only">{userPaused ? "Retomar rotação das sugestões" : "Pausar rotação das sugestões"}</span>
+          <span className="sr-only">{userPaused ? t.play : t.pause}</span>
         </button>
       )}
       <button
@@ -99,7 +102,7 @@ export default function SuggestionCarousel({
         className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-fg"
       >
         <ChevronLeft aria-hidden="true" className="size-5" />
-        <span className="sr-only">Sugestão anterior</span>
+        <span className="sr-only">{t.prev}</span>
       </button>
 
       <ul
@@ -114,8 +117,8 @@ export default function SuggestionCarousel({
               itemRefs.current[i] = el;
             }}
             className="max-w-full shrink-0 snap-start"
-            aria-roledescription="sugestão"
-            aria-label={`${i + 1} de ${items.length}`}
+            aria-roledescription={t.slideRole}
+            aria-label={`${i + 1} ${t.of} ${items.length}`}
           >
             <button
               type="button"
@@ -143,7 +146,7 @@ export default function SuggestionCarousel({
         className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-fg"
       >
         <ChevronRight aria-hidden="true" className="size-5" />
-        <span className="sr-only">Sugestão seguinte</span>
+        <span className="sr-only">{t.next}</span>
       </button>
     </section>
   );

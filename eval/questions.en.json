@@ -1,0 +1,104 @@
+{
+  "suggested": [
+    {
+      "id": "s01",
+      "q": "What is the AI First-Responder?",
+      "expect_section": "O projeto em 30 segundos"
+    },
+    {
+      "id": "s02",
+      "q": "Why use an LLM on an emergency line?",
+      "expect_section": "Perguntas frequentes"
+    },
+    {
+      "id": "s03",
+      "q": "How does a call flow, from the button to the SMS?",
+      "expect_section": "Arquitetura: durante a chamada (tempo real)"
+    },
+    {
+      "id": "s04",
+      "q": "What happens after the call ends?",
+      "expect_section": "Arquitetura: depois da chamada (segundos)"
+    },
+    {
+      "id": "s05",
+      "q": "What are the Watchtowers?",
+      "expect_section": "Avaliação: as Watchtowers, o gate e o benchmark"
+    },
+    {
+      "id": "s06",
+      "q": "How did the 500-out-of-500 gate work?",
+      "expect_section": "Avaliação: as Watchtowers, o gate e o benchmark"
+    },
+    {
+      "id": "s07",
+      "q": "What is a Vapi Squad?",
+      "expect_section": "Ferramentas: voz e orquestração"
+    },
+    {
+      "id": "s08",
+      "q": "Why WebRTC for the human to join the call?",
+      "expect_section": "Ferramentas: voz e orquestração"
+    },
+    {
+      "id": "s09",
+      "q": "Which failures showed up and how were they fixed?",
+      "expect_section": "Falhas encontradas e correções"
+    },
+    {
+      "id": "s10",
+      "q": "Why a knowledge base instead of fine-tuning?",
+      "expect_section": "Decisões de desenho e porquês"
+    },
+    {
+      "id": "s11",
+      "q": "How does the verifier in n8n work?",
+      "expect_section": "Arquitetura: depois da chamada (segundos)"
+    },
+    {
+      "id": "s12",
+      "q": "What was Bruno's role in the project?",
+      "expect_section": "O papel do Bruno"
+    },
+    {
+      "id": "s13",
+      "q": "What would Bruno do differently today?",
+      "expect_section": "O que o Bruno faria diferente hoje"
+    },
+    {
+      "id": "s14",
+      "q": "Which metrics are used in a voice agent?",
+      "expect_section": "Conceitos"
+    },
+    {
+      "id": "s15",
+      "q": "How does this assistant protect itself against prompt injection?",
+      "expect_section": "Perguntas frequentes"
+    },
+    {
+      "id": "s16",
+      "q": "What does the AI Act say about emergency calls?",
+      "expect_section": "Regulação: AI Act e RGPD"
+    },
+    {
+      "id": "s17",
+      "q": "How could this apply to Medicare?",
+      "expect_section": "Como isto se aplica à Medicare (ideias do Bruno)"
+    },
+    {
+      "id": "s18",
+      "q": "What are LangGraph and LangSmith?",
+      "expect_section": "Ferramentas: avaliação e observabilidade"
+    },
+    {
+      "id": "s19",
+      "q": "How much did one agent call cost?",
+      "expect_section": "Impacto"
+    },
+    {
+      "id": "s20",
+      "q": "Was this project made by AI?",
+      "expect_section": "Perguntas frequentes"
+    }
+  ]
+}

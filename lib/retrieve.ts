@@ -1,3 +1,4 @@
+import { startObservation } from "@langfuse/tracing";
 import { config } from "./config";
 import { supabaseAdmin } from "./supabase";
 import { embed, rerank } from "./voyage";
@@ -19,6 +20,7 @@ type Row = { id: string; section: string; title: string; content: string; score:
 
 export async function retrieve(query: string): Promise<RetrievalResult> {
   const t0 = Date.now();
+  const span = startObservation("retrieval", { input: { query } }, { asType: "retriever" });
   // Se o embedding falhar (limite/indisponibilidade da Voyage), a pesquisa degrada para
   // só palavras-chave em vez de falhar o pedido.
   let queryEmbedding: number[] | null = null;
@@ -37,7 +39,10 @@ export async function retrieve(query: string): Promise<RetrievalResult> {
     query_embedding: queryEmbedding,
     match_count: config.matchCount,
   });
-  if (error) throw new Error(`hybrid_search falhou: ${error.code ?? "erro"}`);
+  if (error) {
+    span.update({ level: "ERROR", statusMessage: `hybrid_search: ${error.code ?? "erro"}` }).end();
+    throw new Error(`hybrid_search falhou: ${error.code ?? "erro"}`);
+  }
   const t2 = Date.now();
 
   const candidates: RetrievedDoc[] = ((data ?? []) as Row[]).map((r) => ({
@@ -49,6 +54,14 @@ export async function retrieve(query: string): Promise<RetrievalResult> {
     rerankScore: null,
   }));
 
+  span
+    .update({
+      output: candidates.map((c) => ({ section: c.title, rrf: Number(c.rrf.toFixed(4)) })),
+      metadata: { embedModel: config.embedModel, embedMs: t1 - t0, searchMs: t2 - t1, keywordOnly: queryEmbedding === null },
+    })
+    .end();
+
+  const rerankSpan = startObservation("rerank", { input: { query, candidates: candidates.length } }, { asType: "retriever" });
   let reranked: RetrievedDoc[];
   let rerankTokens = 0;
   let rerankFailed = false;
@@ -68,6 +81,13 @@ export async function retrieve(query: string): Promise<RetrievalResult> {
   const t3 = Date.now();
 
   const docs = reranked.filter((d) => d.rerankScore === null || d.rerankScore >= config.rerankMinScore);
+  rerankSpan
+    .update({
+      output: reranked.map((d) => ({ section: d.title, score: d.rerankScore })),
+      metadata: { model: config.rerankModel, threshold: config.rerankMinScore, kept: docs.length, degraded: rerankFailed },
+      ...(rerankFailed ? { level: "WARNING" as const, statusMessage: "rerank indisponível: ordem RRF" } : {}),
+    })
+    .end();
 
   return {
     query,

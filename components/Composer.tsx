@@ -2,8 +2,9 @@
 
 import { Loader2, SendHorizontal } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import type { Dict } from "./i18n";
 
-export default function Composer({ onSend, busy, maxChars }: { onSend: (t: string) => void; busy: boolean; maxChars: number }) {
+export default function Composer({ t, onSend, busy, maxChars }: { t: Dict; onSend: (q: string) => void; busy: boolean; maxChars: number }) {
   const [value, setValue] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
   const counterId = useId();
@@ -18,9 +19,9 @@ export default function Composer({ onSend, busy, maxChars }: { onSend: (t: strin
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
-    const t = value.trim();
-    if (!t || busy) return;
-    onSend(t);
+    const q = value.trim();
+    if (!q || busy) return;
+    onSend(q);
     setValue("");
   };
 
@@ -37,7 +38,7 @@ export default function Composer({ onSend, busy, maxChars }: { onSend: (t: strin
     <form onSubmit={submit} className="flex items-end gap-2 py-2" aria-busy={busy}>
       <div className="flex-1">
         <label htmlFor="pergunta" className="sr-only">
-          Escreva a sua pergunta
+          {t.inputLabel}
         </label>
         <textarea
           id="pergunta"
@@ -47,15 +48,15 @@ export default function Composer({ onSend, busy, maxChars }: { onSend: (t: strin
           maxLength={maxChars}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Pergunte sobre o projeto…"
+          placeholder={t.placeholder}
           aria-describedby={`${counterId} ${hintId}`}
           className="block min-h-11 w-full resize-none rounded-2xl border border-line bg-bg px-4 py-2.5 text-base text-fg placeholder:text-muted focus:border-brand-green"
         />
         <div className="mt-1 flex justify-between px-1 text-xs text-muted">
-          <span id={hintId}>Enter envia · Shift+Enter muda de linha</span>
+          <span id={hintId}>{t.hint}</span>
           <span id={counterId} aria-live={remaining <= 50 ? "polite" : "off"}>
             {value.length}/{maxChars}
-            <span className="sr-only"> caracteres</span>
+            <span className="sr-only"> {t.chars}</span>
           </span>
         </div>
       </div>
@@ -67,12 +68,12 @@ export default function Composer({ onSend, busy, maxChars }: { onSend: (t: strin
         {busy ? (
           <>
             <Loader2 aria-hidden="true" className="size-5 animate-spin motion-reduce:animate-none" />
-            <span className="sr-only">A responder…</span>
+            <span className="sr-only">{t.sending}</span>
           </>
         ) : (
           <>
             <SendHorizontal aria-hidden="true" className="size-5" />
-            <span className="sr-only">Enviar</span>
+            <span className="sr-only">{t.send}</span>
           </>
         )}
       </button>

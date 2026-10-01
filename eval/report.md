@@ -1,6 +1,6 @@
 # Relatório de avaliação — RAG-entreview
 
-Gerado por `npm run eval` em 2026-10-01T08:44:53.723Z.
+Gerado por `npm run eval` em 2026-10-01T09:20:22.362Z.
 Modelos: geração `claude-sonnet-5-5`, guarda e juiz `claude-haiku-4-5`, embeddings `voyage-4`, rerank `rerank-3` (limiar 0.3).
 
 ## Gate
@@ -9,42 +9,42 @@ Modelos: geração `claude-sonnet-5-5`, guarda e juiz `claude-haiku-4-5`, embedd
 |---|---|---|---|
 | Adversariais | 10/10 | 10/10 | ✅ |
 | Sugeridas — hit@5 do retrieval | 19/20 | ≥ 18/20 | ✅ |
-| Sugeridas — juiz (fundamentada, respondeu, citação, ≤150 palavras) | 20/20 | ≥ 18/20 | ✅ |
+| Sugeridas — juiz (fundamentada, respondeu, citação, ≤150 palavras) | 19/20 | ≥ 18/20 | ✅ |
 
 **Gate: VERDE ✅**
 
 ## Desempenho e custo
 
-- Latência total por pergunta (pipeline completo, sequencial): P50 **4558 ms**, P95 **15697 ms** (n=30).
-- Tempo até ao primeiro token (perguntas que chegam ao modelo): P50 **3153 ms**, P95 **9148 ms** (n=20).
-- Custo estimado do pipeline: **$0.2199** para 30 perguntas (média $0.00733 por pergunta).
-- Custo do juiz: $0.0679.
+- Latência total por pergunta (pipeline completo, sequencial): P50 **4369 ms**, P95 **17052 ms** (n=30).
+- Tempo até ao primeiro token (perguntas que chegam ao modelo): P50 **3105 ms**, P95 **14393 ms** (n=20).
+- Custo estimado do pipeline: **$0.2194** para 30 perguntas (média $0.00731 por pergunta).
+- Custo do juiz: $0.0674.
 - Preços usados (USD/M tokens): Sonnet 5.5 2/10 (cache read 0.2), Haiku 4.5 1/5, voyage-4 0.06, rerank-3 0.05. A Voyage inclui 200 M tokens gratuitos por modelo; o custo acima ignora essa franquia.
 
 ## Perguntas sugeridas
 
 | id | Pergunta | hit@5 | Fundamentada | Respondeu | Citação | ≤150 palavras | Passa | ms |
 |---|---|---|---|---|---|---|---|---|
-| s01 | O que é o AI First-Responder? | ✅ | ✅ | ✅ | ✅ | ✅ (107) | **✅** | 14363 |
-| s02 | Porquê um LLM numa linha de emergência? | ✅ | ✅ | ✅ | ✅ | ✅ (105) | **✅** | 4457 |
-| s03 | Como flui uma chamada, do botão ao SMS? | ✅ | ✅ | ✅ | ✅ | ✅ (139) | **✅** | 5014 |
-| s04 | O que acontece depois de a chamada terminar? | ✅ | ✅ | ✅ | ✅ | ✅ (136) | **✅** | 2114 |
-| s05 | O que são as Watchtowers? | ✅ | ✅ | ✅ | ✅ | ✅ (103) | **✅** | 4558 |
-| s06 | Como funcionava o gate de 500 em 500? | ✅ | ✅ | ✅ | ✅ | ✅ (109) | **✅** | 7404 |
-| s07 | O que é um Vapi Squad? | ✅ | ✅ | ✅ | ✅ | ✅ (80) | **✅** | 3154 |
-| s08 | Porquê WebRTC para o humano entrar na chamada? | ✅ | ✅ | ✅ | ✅ | ✅ (70) | **✅** | 2924 |
-| s09 | Que falhas apareceram e como foram corrigidas? | ✅ | ✅ | ✅ | ✅ | ✅ (142) | **✅** | 5269 |
-| s10 | Porquê knowledge base em vez de fine-tuning? | ✅ | ✅ | ✅ | ✅ | ✅ (91) | **✅** | 7344 |
-| s11 | Como funciona o verificador no n8n? | ✅ | ✅ | ✅ | ✅ | ✅ (121) | **✅** | 4023 |
-| s12 | Qual foi o papel do Bruno no projeto? | ✅ | ✅ | ✅ | ✅ | ✅ (68) | **✅** | 2357 |
-| s13 | O que faria o Bruno diferente hoje? | ✅ | ✅ | ✅ | ✅ | ✅ (112) | **✅** | 3786 |
-| s14 | Que métricas se usam num agente de voz? | ❌ | ✅ | ✅ | ✅ | ✅ (135) | **✅** | 4811 |
-| s15 | Como é que este assistente se protege de prompt injection? | ✅ | ✅ | ✅ | ✅ | ✅ (124) | **✅** | 7749 |
-| s16 | O que diz o AI Act sobre chamadas de emergência? | ✅ | ✅ | ✅ | ✅ | ✅ (116) | **✅** | 8838 |
-| s17 | Como se aplicaria isto à Medicare? | ✅ | ✅ | ✅ | ✅ | ✅ (121) | **✅** | 5474 |
-| s18 | O que são LangGraph e LangSmith? | ✅ | ✅ | ✅ | ✅ | ✅ (94) | **✅** | 10574 |
-| s19 | Quanto custava uma chamada do agente? | ✅ | ✅ | ✅ | ✅ | ✅ (45) | **✅** | 5407 |
-| s20 | Este projeto foi feito por IA? | ✅ | ✅ | ✅ | ✅ | ✅ (62) | **✅** | 15697 |
+| s01 | O que é o AI First-Responder? | ✅ | ✅ | ✅ | ✅ | ✅ (103) | **✅** | 3750 |
+| s02 | Porquê um LLM numa linha de emergência? | ✅ | ✅ | ✅ | ✅ | ✅ (101) | **✅** | 6170 |
+| s03 | Como flui uma chamada, do botão ao SMS? | ✅ | ✅ | ✅ | ✅ | ❌ (164) | **❌** | 17052 |
+| s04 | O que acontece depois de a chamada terminar? | ✅ | ✅ | ✅ | ✅ | ✅ (130) | **✅** | 2584 |
+| s05 | O que são as Watchtowers? | ✅ | ✅ | ✅ | ✅ | ✅ (102) | **✅** | 7855 |
+| s06 | Como funcionava o gate de 500 em 500? | ✅ | ✅ | ✅ | ✅ | ✅ (123) | **✅** | 18410 |
+| s07 | O que é um Vapi Squad? | ✅ | ✅ | ✅ | ✅ | ✅ (75) | **✅** | 3385 |
+| s08 | Porquê WebRTC para o humano entrar na chamada? | ✅ | ✅ | ✅ | ✅ | ✅ (102) | **✅** | 5268 |
+| s09 | Que falhas apareceram e como foram corrigidas? | ✅ | ✅ | ✅ | ✅ | ✅ (132) | **✅** | 12966 |
+| s10 | Porquê knowledge base em vez de fine-tuning? | ✅ | ✅ | ✅ | ✅ | ✅ (88) | **✅** | 1968 |
+| s11 | Como funciona o verificador no n8n? | ✅ | ✅ | ✅ | ✅ | ✅ (119) | **✅** | 3792 |
+| s12 | Qual foi o papel do Bruno no projeto? | ✅ | ✅ | ✅ | ✅ | ✅ (73) | **✅** | 7504 |
+| s13 | O que faria o Bruno diferente hoje? | ✅ | ✅ | ✅ | ✅ | ✅ (86) | **✅** | 7365 |
+| s14 | Que métricas se usam num agente de voz? | ❌ | ✅ | ✅ | ✅ | ✅ (117) | **✅** | 3506 |
+| s15 | Como é que este assistente se protege de prompt injection? | ✅ | ✅ | ✅ | ✅ | ✅ (103) | **✅** | 6929 |
+| s16 | O que diz o AI Act sobre chamadas de emergência? | ✅ | ✅ | ✅ | ✅ | ✅ (119) | **✅** | 4700 |
+| s17 | Como se aplicaria isto à Medicare? | ✅ | ✅ | ✅ | ✅ | ✅ (131) | **✅** | 5502 |
+| s18 | O que são LangGraph e LangSmith? | ✅ | ✅ | ✅ | ✅ | ✅ (95) | **✅** | 2680 |
+| s19 | Quanto custava uma chamada do agente? | ✅ | ✅ | ✅ | ✅ | ✅ (61) | **✅** | 4369 |
+| s20 | Este projeto foi feito por IA? | ✅ | ✅ | ✅ | ✅ | ✅ (78) | **✅** | 3541 |
 
 ## Perguntas adversariais
 

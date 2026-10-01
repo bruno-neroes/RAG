@@ -1,8 +1,10 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { startObservation } from "@langfuse/tracing";
 import { anthropic } from "./anthropic";
 import { config } from "./config";
 import { classify, outputViolation, ruleBasedLabel } from "./guard";
-import { buildUserTurn, fixedReply, OUTPUT_BLOCKED_REPLY, SYSTEM_PROMPT, type GuardLabel } from "./prompt";
+import { buildUserTurn, fixedReply, outputBlockedReply, SYSTEM_PROMPT, type GuardLabel, type Lang } from "./prompt";
+import { generationCostUsd } from "./pricing";
 import { retrieve, type RetrievalResult } from "./retrieve";
 import { extractCitations, needsHistory, sanitize } from "./text";
 
@@ -41,6 +43,8 @@ export type PipelineHooks = {
   signal?: AbortSignal;
   /** Pergunta fixa do carrossel: conhecida e segura, salta o classificador (poupa uma chamada). */
   trusted?: boolean;
+  /** Língua da interface, usada nas respostas fixas (o modelo responde na língua da pergunta). */
+  lang?: Lang;
 };
 
 /** Normaliza e limita o histórico recebido do cliente. */
@@ -85,15 +89,24 @@ export async function runPipeline(messages: ChatMessage[], hooks: PipelineHooks 
     (r) => ({ ok: true as const, r, at: Date.now() }),
     (e: unknown) => ({ ok: false as const, e, at: Date.now() }),
   );
+  const lang: Lang = hooks.lang ?? "pt";
+  const guardSpan = startObservation("guard", { input: { question } }, { asType: "guardrail" });
   const guard = hooks.trusted
     ? { label: "project" as const, source: "trusted", inputTokens: 0, outputTokens: 0 }
     : await classify(question);
   usage.guardIn = guard.inputTokens;
   usage.guardOut = guard.outputTokens;
   const t1 = Date.now();
+  guardSpan
+    .update({
+      ...(guard.label === "personal_data" ? { input: { question: "[omitido: pedido de dados pessoais]" } } : {}),
+      output: { label: guard.label, source: guard.source },
+      metadata: { model: config.guardModel, inputTokens: guard.inputTokens, outputTokens: guard.outputTokens },
+    })
+    .end();
 
   if (guard.label !== "project") {
-    const answer = fixedReply(guard.label, question);
+    const answer = fixedReply(guard.label, question, lang);
     return {
       label: guard.label,
       guardSource: guard.source,
@@ -124,6 +137,16 @@ export async function runPipeline(messages: ChatMessage[], hooks: PipelineHooks 
   let blocked = false;
   let firstTokenMs: number | null = null;
 
+  const generation = startObservation(
+    "generation",
+    {
+      model: config.chatModel,
+      modelParameters: { max_tokens: config.maxOutputTokens, effort: "low", thinking: "between_tools" },
+      input: { question, sections: contextSections, historyTurns: history.length },
+    },
+    { asType: "generation" },
+  );
+
   const stream = anthropic().beta.messages.stream(
     {
       model: config.chatModel,
@@ -142,7 +165,10 @@ export async function runPipeline(messages: ChatMessage[], hooks: PipelineHooks 
   // 4. Verificação incremental: se aparecer algo proibido, corta o stream de imediato.
   for await (const event of stream) {
     if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-      if (firstTokenMs === null) firstTokenMs = Date.now() - t0;
+      if (firstTokenMs === null) {
+        firstTokenMs = Date.now() - t0;
+        generation.update({ completionStartTime: new Date() });
+      }
       raw += event.delta.text;
       if (outputViolation(raw)) {
         blocked = true;
@@ -171,7 +197,7 @@ export async function runPipeline(messages: ChatMessage[], hooks: PipelineHooks 
   let droppedCitations: string[] = [];
   if (blocked || outputViolation(raw)) {
     blocked = true;
-    answer = OUTPUT_BLOCKED_REPLY;
+    answer = outputBlockedReply(lang);
   } else {
     const extracted = extractCitations(raw, contextSections);
     answer = extracted.text;
@@ -179,6 +205,21 @@ export async function runPipeline(messages: ChatMessage[], hooks: PipelineHooks 
     droppedCitations = extracted.dropped;
   }
   if (blocked) hooks.onReplace?.(answer);
+
+  generation
+    .update({
+      model: model ?? config.chatModel,
+      output: { answer, citations, droppedCitations },
+      usageDetails: {
+        input: usage.genIn,
+        output: usage.genOut,
+        cache_read_input_tokens: usage.cacheRead,
+        cache_creation_input_tokens: usage.cacheWrite,
+      },
+      costDetails: { total: generationCostUsd(usage) },
+      ...(blocked ? { level: "WARNING" as const, statusMessage: "resposta substituída pela verificação de saída" } : {}),
+    })
+    .end();
 
   return {
     label: "project",

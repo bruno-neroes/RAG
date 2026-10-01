@@ -40,6 +40,11 @@ describe("citações", () => {
     expect(r.dropped).toEqual(["Inventada"]);
     expect(r.text).toBe("Custa 0,17 €.");
   });
+  it("aceita o formato inglês [Section: ...]", () => {
+    const r = extractCitations("Costs 0.17 €.\n\n[Section: Impacto]", ctx);
+    expect(r.citations).toEqual(["Impacto"]);
+    expect(r.text).toBe("Costs 0.17 €.");
+  });
   it("tolera acentos, maiúsculas e várias secções numa marca", () => {
     const r = extractCitations("ok [Seccao: perguntas FREQUENTES; Impacto]", ctx);
     expect(r.citations).toEqual(["Perguntas frequentes", "Impacto"]);

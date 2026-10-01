@@ -87,7 +87,7 @@ export function contextualText(docName: string, c: Chunk): string {
   return `Documento: ${docName} · Secção: ${c.title}\n\n${c.content}`;
 }
 
-const CITATION_RE = /\[\s*Sec[çc][ãa]o\s*:\s*([^\]\n]+?)\s*\]/gi;
+const CITATION_RE = /\[\s*(?:Sec[çc][ãa]o|Section)\s*:\s*([^\]\n]+?)\s*\]/gi;
 
 function norm(s: string): string {
   return s
@@ -123,7 +123,7 @@ export function extractCitations(
   }
   const clean = text
     .replace(CITATION_RE, "")
-    .replace(/^\s*(Fontes?|Citações|Citação)\s*:\s*$/gim, "")
+    .replace(/^\s*(Fontes?|Citações|Citação|Sources?|Citations?)\s*:\s*$/gim, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

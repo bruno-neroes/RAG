@@ -28,9 +28,15 @@ pergunta ─► limites (IP com hash + teto diário)
 
 Medido no pipeline real: **≈ $0,011 por pergunta** livre (Haiku ≈ 550 tokens in; Sonnet ≈ 2,6 k in / 270 out; o system prompt fica em cache). As 20 perguntas do carrossel são servidas da **cache exata** depois da primeira resposta (custo 0). A chave da cache inclui a versão da base de conhecimento, do system prompt e do modelo; `npm run ingest` limpa-a. Texto livre nunca vem da cache.
 
-Proteções: `RATE_LIMIT_PER_10MIN` por IP (por omissão 40; hash SHA-256 com sal), `DAILY_MESSAGE_CAP` global de respostas geradas (por omissão 250 ≈ $2,75 no pior caso), mensagens ≤ 600 caracteres, histórico ≤ 6 mensagens, uma só chamada de geração por pedido. Respostas da cache não contam para os limites: custam zero e, numa sala, muitas pessoas partilham o IP do Wi-Fi.
+Proteções: `RATE_LIMIT_PER_10MIN` por IP (por omissão 40; hash SHA-256 com sal), `DAILY_MESSAGE_CAP` global de respostas geradas (150 em produção ≈ $1,65 no pior caso), mensagens ≤ 600 caracteres, histórico ≤ 6 mensagens, uma só chamada de geração por pedido. Respostas da cache não contam para os limites: custam zero e, numa sala, muitas pessoas partilham o IP do Wi-Fi.
 
 Avaliado e não adotado: compressão de prompts (LLMLingua) — poupança de ~$0,002/pergunta não compensa o peso no serverless e o risco de perder factos; RTK — comprime output de terminal para agentes de código, não se aplica a chamadas de API em runtime.
+
+## Observabilidade e Fase 3
+
+- **Langfuse (opcional):** com `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` e `LANGFUSE_BASE_URL` definidas, cada pedido gera um trace `chat` (por `sessionId`) com observações `guard` (guardrail), `retrieval` e `rerank` (retriever) e `generation` (modelo, tokens com cache, custo, tempo até ao primeiro token). Registo via `instrumentation.ts` + `@vercel/otel`; flush em `after()`. Sem as variáveis, o tracer é no-op. Pedidos classificados como dados pessoais não enviam o texto.
+- **Painel "Sobre" interativo:** os passos do pipeline expandem e mostram os números reais da última resposta (classificação, candidatos, scores do rerank, tempos, tokens, custo estimado, cache).
+- **PT/EN:** interface, sugestões (`eval/questions.en.json`), respostas fixas e cache por língua. `npm run eval en` avalia as 20 sugeridas em inglês (informativo, fora do gate).
 
 ## Comandos
 
@@ -41,7 +47,8 @@ npm run ingest                  # chunking por secção → Voyage → Supabase 
 npm run dev                     # http://localhost:3000
 npm test                        # testes unitários (vitest)
 npm run eval                    # avaliação com gate → eval/report.md
-npm run eval s05                # só uma pergunta (ou "s" / "a" para um grupo)
+npm run eval s05                # só uma pergunta (ou "s" / "a" para um grupo; "en" para inglês)
+npm run warm https://…          # pré-aquece a cache do carrossel (PT e EN) após ingest/deploy
 npm run build
 ```
 

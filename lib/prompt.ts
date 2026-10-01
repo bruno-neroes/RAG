@@ -14,7 +14,7 @@ Regras:
 Forma:
 - Respondes em português de Portugal ou na língua em que te perguntam.
 - Curto, concreto e simpático: no máximo 120 palavras no total (listas incluídas), salvo pedido explícito de mais detalhe. Podes usar uma lista curta, de no máximo 5 itens de uma linha, quando ajuda.
-- Terminas com as citações das secções que usaste, no formato [Secção: título], uma por secção, com o título exatamente como aparece no atributo section do documento.
+- Terminas com as citações das secções que usaste, no formato [Secção: título], uma por secção, com o título exatamente como aparece no atributo section do documento (mantém este formato e o título em português mesmo quando respondes noutra língua).
 - Quando a pergunta sai do âmbito (o projeto, as ferramentas, as decisões, a regulação relacionada, a Medicare no contexto da candidatura e o próprio assistente), dizes isso com simpatia e sugeres um tema do projeto.`;
 
 export const DOCUMENTS_PREAMBLE =
@@ -38,25 +38,38 @@ export function buildUserTurn(question: string, docs: ContextDoc[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// Respostas fixas para perguntas que a guarda não deixa seguir para o modelo.
+// Respostas fixas para perguntas que a guarda não deixa seguir para o modelo (PT e EN).
 // ---------------------------------------------------------------------------
 
 export type GuardLabel = "project" | "offtopic" | "injection" | "personal_data" | "medical";
+export type Lang = "pt" | "en";
 
-export const STARTER_QUESTIONS = [
-  "O que é o AI First-Responder?",
-  "Como flui uma chamada, do botão ao SMS?",
-  "O que são as Watchtowers?",
-];
+export const STARTER_QUESTIONS: Record<Lang, string[]> = {
+  pt: ["O que é o AI First-Responder?", "Como flui uma chamada, do botão ao SMS?", "O que são as Watchtowers?"],
+  en: ["What is the AI First-Responder?", "How does a call flow, from the button to the SMS?", "What are the Watchtowers?"],
+};
 
-function suggestion(seed: string): string {
+function suggestion(seed: string, lang: Lang): string {
   let h = 0;
   for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return STARTER_QUESTIONS[h % STARTER_QUESTIONS.length];
+  const list = STARTER_QUESTIONS[lang];
+  return list[h % list.length];
 }
 
-export function fixedReply(label: Exclude<GuardLabel, "project">, question: string): string {
-  const s = suggestion(question);
+export function fixedReply(label: Exclude<GuardLabel, "project">, question: string, lang: Lang = "pt"): string {
+  const s = suggestion(question, lang);
+  if (lang === "en") {
+    switch (label) {
+      case "offtopic":
+        return `That is outside what I can answer: I am an AI assistant focused on the AI First-Responder project and on Bruno Sousa's application to Medicare. How about starting here: "${s}"`;
+      case "injection":
+        return `I can't share my instructions, keys or internal configuration, nor change my role. I am an AI assistant about the AI First-Responder project — I can, for example, answer "${s}"`;
+      case "personal_data":
+        return `I don't share personal data (contacts, addresses or anything else). I can talk about Bruno's professional background and his role in the project — for example: "What was Bruno's role in the project?"`;
+      case "medical":
+        return "I don't give medical advice — I am an AI assistant about a software project. In an emergency, call 112 now: the operator will tell you what to do until help arrives.";
+    }
+  }
   switch (label) {
     case "offtopic":
       return `Isso fica fora do que sei responder: sou um assistente de IA focado no projeto AI First-Responder e na candidatura do Bruno Sousa à Medicare. Que tal começar por aqui: «${s}»`;
@@ -69,11 +82,26 @@ export function fixedReply(label: Exclude<GuardLabel, "project">, question: stri
   }
 }
 
-export const RATE_LIMIT_REPLY =
-  "Recebi muitas perguntas seguidas deste dispositivo. Espere uns minutos e volte a tentar — obrigado pela paciência.";
-export const DAILY_CAP_REPLY =
-  "O assistente atingiu o limite diário de respostas, definido para controlar custos. Volte a tentar amanhã.";
-export const OUTPUT_BLOCKED_REPLY =
-  "Não posso responder a isso. Sou um assistente de IA sobre o projeto AI First-Responder — experimente perguntar «O que é o AI First-Responder?»";
-export const ERROR_REPLY =
-  "Tive um problema técnico a preparar a resposta. Tente outra vez daqui a pouco.";
+const REPLIES = {
+  rateLimit: {
+    pt: "Recebi muitas perguntas seguidas deste dispositivo. Espere uns minutos e volte a tentar — obrigado pela paciência.",
+    en: "I received many questions in a row from this device. Please wait a few minutes and try again — thanks for your patience.",
+  },
+  dailyCap: {
+    pt: "O assistente atingiu o limite diário de respostas, definido para controlar custos. Volte a tentar amanhã.",
+    en: "The assistant reached its daily answer limit, set to control costs. Please try again tomorrow.",
+  },
+  blocked: {
+    pt: "Não posso responder a isso. Sou um assistente de IA sobre o projeto AI First-Responder — experimente perguntar «O que é o AI First-Responder?»",
+    en: 'I can\'t answer that. I am an AI assistant about the AI First-Responder project — try asking "What is the AI First-Responder?"',
+  },
+  error: {
+    pt: "Tive um problema técnico a preparar a resposta. Tente outra vez daqui a pouco.",
+    en: "I had a technical problem preparing the answer. Please try again shortly.",
+  },
+} as const;
+
+export const rateLimitReply = (lang: Lang) => REPLIES.rateLimit[lang];
+export const dailyCapReply = (lang: Lang) => REPLIES.dailyCap[lang];
+export const outputBlockedReply = (lang: Lang) => REPLIES.blocked[lang];
+export const errorReply = (lang: Lang) => REPLIES.error[lang];
