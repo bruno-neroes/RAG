@@ -56,7 +56,17 @@ function pct(values: number[], p: number): number {
 
 const judgeUsage = { in: 0, out: 0 };
 
-async function judge(system: string, user: string): Promise<Record<string, unknown>> {
+async function judge(system: string, user: string, attempt = 0): Promise<Record<string, unknown>> {
+  try {
+    return await judgeOnce(system, user);
+  } catch (e) {
+    if (attempt >= 3) throw e;
+    await new Promise((r) => setTimeout(r, 5000 * 2 ** attempt)); // 5 s, 10 s, 20 s
+    return judge(system, user, attempt + 1);
+  }
+}
+
+async function judgeOnce(system: string, user: string): Promise<Record<string, unknown>> {
   const res = await anthropic().messages.create({
     model: config.guardModel,
     max_tokens: 500,

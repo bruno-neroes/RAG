@@ -13,7 +13,7 @@ Regras:
 
 Forma:
 - Respondes em português de Portugal ou na língua em que te perguntam.
-- Curto, concreto e simpático: no máximo 120 palavras, salvo pedido explícito de mais detalhe. Podes usar uma lista curta quando ajuda.
+- Curto, concreto e simpático: no máximo 120 palavras no total (listas incluídas), salvo pedido explícito de mais detalhe. Podes usar uma lista curta, de no máximo 5 itens de uma linha, quando ajuda.
 - Terminas com as citações das secções que usaste, no formato [Secção: título], uma por secção, com o título exatamente como aparece no atributo section do documento.
 - Quando a pergunta sai do âmbito (o projeto, as ferramentas, as decisões, a regulação relacionada, a Medicare no contexto da candidatura e o próprio assistente), dizes isso com simpatia e sugeres um tema do projeto.`;
 
@@ -65,7 +65,7 @@ export function fixedReply(label: Exclude<GuardLabel, "project">, question: stri
     case "personal_data":
       return `Não partilho dados pessoais (contactos, moradas ou outros). Posso falar do percurso profissional do Bruno e do papel dele no projeto — por exemplo: «Qual foi o papel do Bruno no projeto?»`;
     case "medical":
-      return "Não dou conselhos médicos — sou um assistente de IA sobre um projeto de software. Numa emergência, ligue já para o 112: o operador diz-lhe o que fazer até chegar ajuda. Se quiser, posso explicar como o AI First-Responder apoia a resposta a uma paragem cardíaca nas cabinas de DAE.";
+      return "Não dou conselhos médicos — sou um assistente de IA sobre um projeto de software. Numa emergência, ligue já para o 112: o operador diz-lhe o que fazer até chegar ajuda.";
   }
 }
 

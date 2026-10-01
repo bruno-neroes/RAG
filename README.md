@@ -28,7 +28,7 @@ pergunta ─► limites (IP com hash + teto diário)
 
 Medido no pipeline real: **≈ $0,011 por pergunta** livre (Haiku ≈ 550 tokens in; Sonnet ≈ 2,6 k in / 270 out; o system prompt fica em cache). As 20 perguntas do carrossel são servidas da **cache exata** depois da primeira resposta (custo 0). A chave da cache inclui a versão da base de conhecimento, do system prompt e do modelo; `npm run ingest` limpa-a. Texto livre nunca vem da cache.
 
-Proteções: `RATE_LIMIT_PER_10MIN` por IP (hash SHA-256 com sal), `DAILY_MESSAGE_CAP` global (por omissão 250 ≈ $2,75 no pior caso), mensagens ≤ 600 caracteres, histórico ≤ 6 mensagens, uma só chamada de geração por pedido.
+Proteções: `RATE_LIMIT_PER_10MIN` por IP (por omissão 40; hash SHA-256 com sal), `DAILY_MESSAGE_CAP` global de respostas geradas (por omissão 250 ≈ $2,75 no pior caso), mensagens ≤ 600 caracteres, histórico ≤ 6 mensagens, uma só chamada de geração por pedido. Respostas da cache não contam para os limites: custam zero e, numa sala, muitas pessoas partilham o IP do Wi-Fi.
 
 Avaliado e não adotado: compressão de prompts (LLMLingua) — poupança de ~$0,002/pergunta não compensa o peso no serverless e o risco de perder factos; RTK — comprime output de terminal para agentes de código, não se aplica a chamadas de API em runtime.
 

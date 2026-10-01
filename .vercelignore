@@ -1,0 +1,8 @@
+.env
+.env*.local
+.supabase-secrets
+PROMPT.md
+eval/raw
+supabase/.temp
+node_modules
+.next

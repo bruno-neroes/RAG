@@ -12,3 +12,5 @@ next-env.d.ts
 supabase/.temp/
 eval/raw/
 PROMPT.md
+.vercel
+.env*

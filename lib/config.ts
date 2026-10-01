@@ -16,7 +16,7 @@ export const config = {
   matchCount: 12,
   rerankTopK: 5,
   rerankMinScore: num("RERANK_MIN_SCORE", 0.3),
-  rateLimitPer10Min: num("RATE_LIMIT_PER_10MIN", 20),
+  rateLimitPer10Min: num("RATE_LIMIT_PER_10MIN", 40),
   dailyMessageCap: num("DAILY_MESSAGE_CAP", 400),
   maxHistory: 6,
   maxMessageChars: 600,

@@ -36,14 +36,24 @@ export async function POST(req: Request): Promise<Response> {
     return json(400, { message: "Escreva uma pergunta." });
   }
 
+  const question = messages[messages.length - 1].content;
+  // Pergunta do carrossel, sem histórico: pode vir da cache exata (custo zero).
+  // Respostas da cache não contam para os limites (são uma proteção de custo; numa sala,
+  // muitas pessoas partilham o mesmo IP do Wi-Fi).
+  const fixed = messages.length === 1 && isSuggested(question);
+  const key = fixed ? cacheKey(question) : null;
+  const hit = key ? await getCached(key).catch(() => null) : null;
+
   // 1. Limites: por IP (hash com sal) e teto diário global.
-  try {
-    const limit = await checkLimits(hashIp(clientIp(req.headers)));
-    if (!limit.ok) {
-      return json(429, { message: limit.reason === "ip" ? RATE_LIMIT_REPLY : DAILY_CAP_REPLY });
+  if (!hit) {
+    try {
+      const limit = await checkLimits(hashIp(clientIp(req.headers)));
+      if (!limit.ok) {
+        return json(429, { message: limit.reason === "ip" ? RATE_LIMIT_REPLY : DAILY_CAP_REPLY });
+      }
+    } catch {
+      return json(503, { message: ERROR_REPLY });
     }
-  } catch {
-    return json(503, { message: ERROR_REPLY });
   }
 
   const encoder = new TextEncoder();
@@ -52,31 +62,23 @@ export async function POST(req: Request): Promise<Response> {
       const send = (event: string, data: unknown) =>
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
 
-      const question = messages[messages.length - 1].content;
-      // Pergunta do carrossel, sem histórico: pode vir da cache exata (custo zero).
-      const fixed = messages.length === 1 && isSuggested(question);
-      const key = fixed ? cacheKey(question) : null;
-
       try {
-        if (key) {
-          const hit = await getCached(key).catch(() => null);
-          if (hit) {
-            send("delta", { t: hit.answer });
-            const latencyMs = Date.now() - started;
-            send("done", { answer: hit.answer, citations: hit.citations, label: "project", blocked: false, latencyMs, model: hit.model, cached: true });
-            await logExchange({
-              sessionId,
-              question,
-              answer: hit.answer,
-              citations: hit.citations,
-              guardLabel: "project",
-              latencyMs,
-              inputTokens: 0,
-              outputTokens: 0,
-              model: `cache:${hit.model ?? ""}`,
-            });
-            return;
-          }
+        if (hit) {
+          send("delta", { t: hit.answer });
+          const latencyMs = Date.now() - started;
+          send("done", { answer: hit.answer, citations: hit.citations, label: "project", blocked: false, latencyMs, model: hit.model, cached: true });
+          await logExchange({
+            sessionId,
+            question,
+            answer: hit.answer,
+            citations: hit.citations,
+            guardLabel: "project",
+            latencyMs,
+            inputTokens: 0,
+            outputTokens: 0,
+            model: `cache:${hit.model ?? ""}`,
+          });
+          return;
         }
 
         const result = await runPipeline(messages, {
