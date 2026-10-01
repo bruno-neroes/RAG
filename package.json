@@ -10,7 +10,8 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "ingest": "tsx --env-file=.env.local scripts/ingest.ts",
-    "eval": "tsx --env-file=.env.local scripts/eval.ts"
+    "eval": "tsx --env-file=.env.local scripts/eval.ts",
+    "warm": "tsx scripts/warm.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

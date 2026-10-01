@@ -37,10 +37,10 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const question = messages[messages.length - 1].content;
-  // Pergunta do carrossel, sem histórico: pode vir da cache exata (custo zero).
-  // Respostas da cache não contam para os limites (são uma proteção de custo; numa sala,
-  // muitas pessoas partilham o mesmo IP do Wi-Fi).
-  const fixed = messages.length === 1 && isSuggested(question);
+  // Pergunta do carrossel: é autónoma (não depende do histórico), por isso pode vir da cache
+  // exata (custo zero) em qualquer ponto da conversa. Respostas da cache não contam para os
+  // limites (são uma proteção de custo; numa sala, muitas pessoas partilham o IP do Wi-Fi).
+  const fixed = isSuggested(question);
   const key = fixed ? cacheKey(question) : null;
   const hit = key ? await getCached(key).catch(() => null) : null;
 
@@ -81,7 +81,8 @@ export async function POST(req: Request): Promise<Response> {
           return;
         }
 
-        const result = await runPipeline(messages, {
+        // Pergunta do carrossel: gera sem histórico, para a resposta poder ir para a cache.
+        const result = await runPipeline(fixed ? messages.slice(-1) : messages, {
           onText: (t) => send("delta", { t }),
           onReplace: (text) => send("replace", { text }),
           signal: req.signal,

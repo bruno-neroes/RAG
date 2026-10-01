@@ -162,7 +162,7 @@ export default function Chat({ suggestions, starters }: { suggestions: string[];
       } finally {
         setBusy(false);
         // Uma única notificação por resposta, quando termina (não por token).
-        if (finalText) setAnnouncement(`Resposta do assistente: ${finalText}`);
+        if (finalText) setAnnouncement(`Resposta do assistente: ${finalText.replace(/\*\*|^#+\s*/gm, "")}`);
       }
     },
     [busy, messages, patch],

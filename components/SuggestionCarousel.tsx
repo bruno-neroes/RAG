@@ -113,7 +113,7 @@ export default function SuggestionCarousel({
             ref={(el) => {
               itemRefs.current[i] = el;
             }}
-            className="snap-start"
+            className="max-w-full shrink-0 snap-start"
             aria-roledescription="sugestão"
             aria-label={`${i + 1} de ${items.length}`}
           >
@@ -125,7 +125,7 @@ export default function SuggestionCarousel({
                 setIndex(i);
                 onPick(q);
               }}
-              className={`min-h-11 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
+              className={`min-h-11 max-w-full rounded-full border px-4 py-2 text-left text-sm font-medium leading-snug transition-colors disabled:opacity-60 ${
                 i === index
                   ? "border-brand-green bg-chip text-chip-fg"
                   : "border-line bg-surface text-fg hover:border-brand-green"
